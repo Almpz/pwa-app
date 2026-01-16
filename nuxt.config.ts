@@ -21,16 +21,28 @@ export default defineNuxtConfig({
       start_url: '/',
       icons: [
         {
-          src: '/icons/icon-192x192.svg',
+          purpose: 'any',
           sizes: '192x192',
-          type: 'image/svg+xml',
-          purpose: 'any maskable'
+          src: '/icons/icon-192x192.png',
+          type: 'image/png'
         },
         {
-          src: '/icons/icon-512x512.svg',
+          purpose: 'maskable',
+          sizes: '192x192',
+          src: '/icons/icon-192x192.png',
+          type: 'image/png'
+        },
+        {
+          purpose: 'any',
           sizes: '512x512',
-          type: 'image/svg+xml',
-          purpose: 'any maskable'
+          src: '/icons/icon-512x512.png',
+          type: 'image/png'
+        },
+        {
+          purpose: 'maskable',
+          sizes: '512x512',
+          src: '/icons/icon-512x512.png',
+          type: 'image/png'
         }
       ]
     },
