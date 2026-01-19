@@ -45,45 +45,64 @@ export const useNotifications = () => {
       throw new Error('Service Worker not registered')
     }
 
-    const response = await $fetch<{ publicKey: string }>('/api/push/vapid-public-key')
-    const publicKey = response.publicKey
-
-    const sub = await registration.value.pushManager.subscribe({
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-      userVisibleOnly: true,
-    })
-
-    subscription.value = sub
-
-    await $fetch('/api/push/subscribe', {
-      body: sub.toJSON(),
-      method: 'POST',
-    })
-
-    return sub
+    return registration.value
   }
 
   const startPeriodicNotifications = async (intervalMinutes: number = 1) => {
-    await $fetch('/api/push/start-interval', {
-      body: { intervalMinutes },
-      method: 'POST',
-    })
+    const intervalMs = intervalMinutes * 60 * 1000
+    
+    const sendLocalNotification = async () => {
+      if (permission.value !== 'granted') return
+      
+      if (!registration.value) {
+        await registerServiceWorker()
+      }
+
+      if (registration.value) {
+        const now = new Date()
+        const timeString = now.toLocaleTimeString()
+        await registration.value.showNotification('Periodic Notification', {
+          badge: '/icons/icon-192x192.png',
+          body: `This notification was sent at ${timeString}`,
+          icon: '/icons/icon-192x192.png',
+        })
+      }
+    }
+    
+    sendLocalNotification()
+    
+    const intervalId = setInterval(sendLocalNotification, intervalMs)
+    
+    if (typeof window !== 'undefined') {
+      (window as any).__notificationIntervalId = intervalId
+    }
+    
+    return intervalId
   }
 
-  const stopPeriodicNotifications = async () => {
-    await $fetch('/api/push/stop-interval', {
-      method: 'POST',
-    })
+  const stopPeriodicNotifications = () => {
+    if (typeof window !== 'undefined' && (window as any).__notificationIntervalId) {
+      clearInterval((window as any).__notificationIntervalId)
+      delete (window as any).__notificationIntervalId
+    }
   }
 
   const sendTestNotification = async () => {
-    await $fetch('/api/push/send', {
-      body: {
-        message: 'This is a test notification from your Nuxt PWA!',
-        title: 'Test Notification',
-      },
-      method: 'POST',
-    })
+    if (permission.value !== 'granted') {
+      throw new Error('Notification permission not granted')
+    }
+
+    if (!registration.value) {
+      await registerServiceWorker()
+    }
+
+    if (registration.value) {
+      await registration.value.showNotification('Test Notification', {
+        badge: '/icons/icon-192x192.png',
+        body: 'This is a test notification from your Nuxt PWA!',
+        icon: '/icons/icon-192x192.png',
+      })
+    }
   }
 
   return {
